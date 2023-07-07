@@ -1,5 +1,4 @@
 import sys
-
 from PyQt5.QtCore import QSize, QEvent, Qt
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
@@ -10,8 +9,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QWidget,
     QLineEdit,
-    QVBoxLayout,
-)
+    QVBoxLayout)
 import configparser
 import keyboard
 import mouse
@@ -28,27 +26,11 @@ EXCEPTION_KEYS = {
 MOUSE_KEYS = {
     Qt.RightButton: "RMB",
     Qt.LeftButton: "LMB"
-    # Qt.MiddleButton: "MMB"
-    # Qt.ExtraButton1: "M4",
-    # Qt.ExtraButton2: "M5",
-    # Qt.ExtraButton3: "M6",
-    # Qt.ExtraButton4: "M7",
-    # Qt.ExtraButton5: "M8",
-    # Qt.ExtraButton6: "M9",
-    # Qt.ExtraButton7: "M10",
-    # Qt.ExtraButton8: "M11",
-    # Qt.ExtraButton9: "M12",
-    # Qt.ExtraButton10: "M13",
-    # Qt.ExtraButton11: "M14",
-    # Qt.ExtraButton12: "M15",
-    # Qt.ExtraButton13: "M16",
-    # Qt.ExtraButton14: "M17",
-    # Qt.ExtraButton15: "M18",
 }
-
-# have to use global variables due to multithreading
-started = False
-
+REVERSE_MOUSE_KEYS = {
+    "LMB": Qt.LeftButton,
+    "RMB": Qt.RightButton
+}
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -135,9 +117,8 @@ class MainWindow(QMainWindow):
         raise ValueError("Value not found in dictionary")
 
     def update_start_stop_buttons(self):
-        global started
-        self.start_button.setEnabled(not started)
-        self.stop_button.setEnabled(started)
+        self.start_button.setEnabled(not self.started)
+        self.stop_button.setEnabled(self.started)
 
     def start_pressing(self):
         for_seconds_time = int(self.click_time.text())
@@ -146,31 +127,31 @@ class MainWindow(QMainWindow):
         if for_seconds_time <= 0:
             for_seconds_time = inf
         time_to_wait = int(self.every_time_click.text())
-        global started
-        started = True
+        self.started = True
         self.update_start_stop_buttons()
 
-        def func(for_seconds_time, time_to_wait, key_to_click):
-            global started
-            if key_to_click not in MOUSE_KEYS:
-                while for_seconds_time >= 0 and started:
-                    sleep(time_to_wait / 1000)
-                    keyboard.send(key_to_click)
-                    for_seconds_time -= time_to_wait / 1000
-            else:
-                while for_seconds_time >= 0 and started:
-                    sleep(time_to_wait / 1000)
-                    if key_to_click == Qt.LeftButton:
-                        mouse.click()
-                    elif key_to_click == Qt.RightButton:
-                        mouse.right_click()
-                    for_seconds_time -= time_to_wait / 1000
+        Thread(
+            target=self.clicker, args=[for_seconds_time, time_to_wait, key_to_click]
+        ).start()
 
-        Thread(target=func, args=[for_seconds_time, time_to_wait, key_to_click]).start()
+    def clicker(self, for_seconds_time, time_to_wait, key_to_click):
+        if key_to_click not in REVERSE_MOUSE_KEYS:
+            while for_seconds_time >= 0 and self.started:
+                keyboard.send(key_to_click)
+                sleep(time_to_wait / 1000)
+                for_seconds_time -= time_to_wait / 1000
+        else:
+            key_to_click = REVERSE_MOUSE_KEYS[key_to_click]
+            while for_seconds_time >= 0 and self.started:
+                if key_to_click == Qt.LeftButton:
+                    mouse.click()
+                elif key_to_click == Qt.RightButton:
+                    mouse.right_click()
+                sleep(time_to_wait / 1000)
+                for_seconds_time -= time_to_wait / 1000
 
     def stop_pressing(self):
-        global started
-        started = False
+        self.started = False
         self.update_start_stop_buttons()
 
     @staticmethod
@@ -185,7 +166,12 @@ class MainWindow(QMainWindow):
         click_every = cfg.get("DEFAULT", "click_every")
         for_seconds = cfg.get("DEFAULT", "for_seconds")
         self.button_to_click.setText(default_button)
-        self.button_to_click.last = default_button
+        if default_button in MOUSE_KEYS:
+            self.button_to_click.last = self.get_key_from_value(
+                MOUSE_KEYS, default_button
+            )
+        else:
+            self.button_to_click.last = default_button
         self.every_time_click.setText(click_every)
         self.click_time.setText(for_seconds)
         self.update_start_stop_buttons()
@@ -227,7 +213,7 @@ class MainWindow(QMainWindow):
 
         if self.ready_to_change_key:
             self.button_to_click.setText(symbol)
-            self.button_to_click.last = key
+            self.button_to_click.last = symbol
             self.ready_to_change_key = False
 
     def event(self, event) -> None:
