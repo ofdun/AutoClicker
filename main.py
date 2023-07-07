@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         press_label.adjustSize()
         press_label.setMaximumWidth(50)
 
-        self.button_to_click = QPushButton("")
+        self.button_to_click = QPushButton()
         self.button_to_click.last = ""
         self.button_to_click.adjustSize()
         self.button_to_click.setMaximumWidth(150)
@@ -53,13 +53,13 @@ class MainWindow(QMainWindow):
         every_label = QLabel("every")
         every_label.adjustSize()
 
-        self.every_time_click = QLineEdit("")
+        self.every_time_click = QLineEdit()
         self.every_time_click.adjustSize()
 
         mills_for_label = QLabel("mills for")
         mills_for_label.adjustSize()
 
-        self.click_time = QLineEdit("")
+        self.click_time = QLineEdit()
         self.click_time.adjustSize()
 
         seconds_label = QLabel("seconds.")
@@ -76,19 +76,26 @@ class MainWindow(QMainWindow):
 
         self.started = False
 
-        self.start_button = QPushButton(f"Start")
+        self.start_button = QPushButton("Start")
         self.start_button.clicked.connect(self.start_pressing)
         self.start_button.adjustSize()
         self.start_button.setMaximumWidth(100)
 
-        self.stop_button = QPushButton(f"Stop")
+        self.stop_button = QPushButton("Stop")
         self.stop_button.clicked.connect(self.stop_pressing)
         self.stop_button.adjustSize()
         self.stop_button.setMaximumWidth(100)
 
+        self.rebind_start_button = QPushButton()
+        self.rebind_start_button.clicked.connect(self.choose_button_to_start)
+        self.rebind_start_button.adjustSize()
+        self.rebind_start_button.setMaximumWidth(100)
+        self.ready_to_change_start_key = False
+
         hbox2 = QHBoxLayout()
         hbox2.addWidget(self.start_button)
         hbox2.addWidget(self.stop_button)
+        hbox2.addWidget(self.rebind_start_button)
 
         reset_button = QPushButton("Reset Config")
         reset_button.adjustSize()
@@ -165,6 +172,7 @@ class MainWindow(QMainWindow):
         default_button = cfg.get("DEFAULT", "button_to_press")
         click_every = cfg.get("DEFAULT", "click_every")
         for_seconds = cfg.get("DEFAULT", "for_seconds")
+        start_button_label = cfg.get('DEFAULT', "start_button")
         self.button_to_click.setText(default_button)
         if default_button in MOUSE_KEYS:
             self.button_to_click.last = self.get_key_from_value(
@@ -174,6 +182,9 @@ class MainWindow(QMainWindow):
             self.button_to_click.last = default_button
         self.every_time_click.setText(click_every)
         self.click_time.setText(for_seconds)
+        self.start_button.setText(f"Start ({start_button_label})")
+        self.start_button.bind = start_button_label
+        self.rebind_start_button.setText(start_button_label)
         self.update_start_stop_buttons()
 
     def reset_config(self) -> None:
@@ -182,6 +193,7 @@ class MainWindow(QMainWindow):
             "button_to_press": "LMB",
             "click_every": "1000",
             "for_seconds": "0",
+            "start_button": "F6"
         }
         with open("config.cfg", "w") as configfile:
             cfg.write(configfile)
@@ -191,15 +203,25 @@ class MainWindow(QMainWindow):
         self.ready_to_change_key = True
         self.button_to_click.setText("...")
 
+    def choose_button_to_start(self) -> None:
+        self.ready_to_change_start_key = True
+        self.rebind_start_button.setText("...")
+
     def on_key_pressed(self, event) -> None:
         key = event.key()
 
         try:
             symbol = QKeySequence(key).toString()
-            print(f"Key pressed: {symbol}")
+            # print(f"Key pressed: {symbol}")
         except UnicodeEncodeError:
             symbol = EXCEPTION_KEYS.get(key, "ERROR")
-            print(f"Key pressed: {symbol}")
+            # print(f"Key pressed: {symbol}")
+
+        if self.ready_to_change_start_key:
+            self.rebind_start_button.setText(symbol)
+            self.start_button.bind = symbol
+            self.start_button.setText(f"Start ({self.start_button.bind})")
+            self.ready_to_change_key = False
 
         if self.ready_to_change_key:
             self.button_to_click.setText(symbol)
@@ -218,7 +240,13 @@ class MainWindow(QMainWindow):
 
     def event(self, event) -> None:
         if event.type() == QEvent.KeyPress:
-            self.on_key_pressed(event)
+            if QKeySequence(event.key()).toString() == self.start_button.bind:
+                if self.started:
+                    self.stop_pressing()
+                else:
+                    self.start_pressing()
+            else:
+                self.on_key_pressed(event)
         elif event.type() == QEvent.MouseButtonPress:
             self.on_mouse_key_pressed(event)
         return QMainWindow.event(self, event)
@@ -229,6 +257,7 @@ class MainWindow(QMainWindow):
             "button_to_press": self.button_to_click.last,
             "click_every": self.every_time_click.text(),
             "for_seconds": self.click_time.text(),
+            "start_button": self.start_button.bind
         }
         with open("config.cfg", "w") as configfile:
             cfg.write(configfile)
