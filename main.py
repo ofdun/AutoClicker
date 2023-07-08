@@ -17,6 +17,8 @@ from math import inf
 from time import sleep
 from threading import Thread
 
+# pyinstaller --windowed  --onedir --add-data "config.cfg;." main.py
+
 EXCEPTION_KEYS = {
     16777248: "SHIFT",
     16777249: "CTRL",
@@ -55,12 +57,14 @@ class MainWindow(QMainWindow):
 
         self.every_time_click = QLineEdit()
         self.every_time_click.adjustSize()
+        self.every_time_click.setMaximumWidth(50)
 
-        mills_for_label = QLabel("mills for")
+        mills_for_label = QLabel("milliseconds for")
         mills_for_label.adjustSize()
 
         self.click_time = QLineEdit()
         self.click_time.adjustSize()
+        self.click_time.setMaximumWidth(50)
 
         seconds_label = QLabel("seconds.")
         seconds_label.adjustSize()
@@ -209,13 +213,11 @@ class MainWindow(QMainWindow):
 
     def on_key_pressed(self, event) -> None:
         key = event.key()
-
         try:
             symbol = QKeySequence(key).toString()
-            # print(f"Key pressed: {symbol}")
+            symbol.encode('utf-8') # if its encodable its just a letter, otherwise its SHIFT, WIN, CTRL, ALT
         except UnicodeEncodeError:
             symbol = EXCEPTION_KEYS.get(key, "ERROR")
-            # print(f"Key pressed: {symbol}")
 
         if self.ready_to_change_start_key:
             self.rebind_start_button.setText(symbol)
@@ -226,7 +228,7 @@ class MainWindow(QMainWindow):
         if self.ready_to_change_key:
             self.button_to_click.setText(symbol)
             self.button_to_click.last = symbol.lower()
-            self.ready_to_change_key = False
+            self.ready_to_change_start_key = False
 
     def on_mouse_key_pressed(self, event) -> None:
         key = event.button()
