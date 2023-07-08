@@ -1,7 +1,7 @@
 import sys
 import os
 from PyQt5.QtCore import QSize, QEvent, Qt
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
             self.create_config()
 
         self.setWindowTitle("AutoClicker")
+        self.setWindowIcon(QIcon('icon.ico'))
         self.setFixedSize(QSize(400, 250))
 
         press_label = QLabel("Press")
@@ -230,7 +231,7 @@ class MainWindow(QMainWindow):
         try:
             symbol = QKeySequence(key).toString()
             symbol.encode('utf-8') # if its encodable its just a letter, otherwise its SHIFT, WIN, CTRL, ALT
-        except UnicodeEncodeError:
+        except UnicodeEncodeError: # C:\Users\elik3\.Projects\AutoClicker\icon.png
             symbol = EXCEPTION_KEYS.get(key, "ERROR")
 
         if self.ready_to_change_start_key:
