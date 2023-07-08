@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt5.QtCore import QSize, QEvent, Qt
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
@@ -16,8 +17,6 @@ import mouse
 from math import inf
 from time import sleep
 from threading import Thread
-
-# pyinstaller --windowed  --onedir --add-data "config.cfg;." main.py
 
 EXCEPTION_KEYS = {
     16777248: "SHIFT",
@@ -37,6 +36,9 @@ REVERSE_MOUSE_KEYS = {
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
+
+        if 'config.cfg' not in os.listdir():
+            self.create_config()
 
         self.setWindowTitle("AutoClicker")
         self.setFixedSize(QSize(400, 250))
@@ -126,6 +128,18 @@ class MainWindow(QMainWindow):
             if val == value:
                 return key
         raise ValueError("Value not found in dictionary")
+    
+    @staticmethod
+    def create_config() -> None:
+        cfg = configparser.ConfigParser()
+        cfg["DEFAULT"] = {
+            "button_to_press": "LMB",
+            "click_every": "1000",
+            "for_seconds": "0",
+            "start_button": "F6"
+        }
+        with open("config.cfg", "w") as configfile:
+            cfg.write(configfile)
 
     def update_start_stop_buttons(self):
         self.start_button.setEnabled(not self.started)
@@ -223,12 +237,12 @@ class MainWindow(QMainWindow):
             self.rebind_start_button.setText(symbol)
             self.start_button.bind = symbol
             self.start_button.setText(f"Start ({self.start_button.bind})")
-            self.ready_to_change_key = False
+            self.ready_to_change_start_key = False
 
         if self.ready_to_change_key:
             self.button_to_click.setText(symbol)
             self.button_to_click.last = symbol.lower()
-            self.ready_to_change_start_key = False
+            self.ready_to_change_key = False
 
     def on_mouse_key_pressed(self, event) -> None:
         key = event.button()
