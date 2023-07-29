@@ -18,12 +18,6 @@ from math import inf
 from time import sleep
 from threading import Thread
 
-EXCEPTION_KEYS = {
-    16777248: "SHIFT",
-    16777249: "CTRL",
-    16777250: "WIN",
-    16777251: "ALT",
-}
 MOUSE_KEYS = {
     Qt.RightButton: "RMB",
     Qt.LeftButton: "LMB"
@@ -139,7 +133,7 @@ class MainWindow(QMainWindow):
             "button_to_press": "LMB",
             "click_every": "1000",
             "for_seconds": "0",
-            "start_button": "F6"
+            "start_button": "f6"
         }
         with open("config.cfg", "w") as configfile:
             cfg.write(configfile)
