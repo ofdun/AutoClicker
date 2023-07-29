@@ -121,6 +121,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         self.render_config()
 
+        self.detect_key_presses()
+
         self.show()
 
     @staticmethod
@@ -227,22 +229,17 @@ class MainWindow(QMainWindow):
         self.rebind_start_button.setText("...")
 
     def on_key_pressed(self, event) -> None:
-        key = event.key()
-        try:
-            symbol = QKeySequence(key).toString()
-            symbol.encode('utf-8') # if its encodable its just a letter, otherwise its SHIFT, WIN, CTRL, ALT
-        except UnicodeEncodeError: # C:\Users\elik3\.Projects\AutoClicker\icon.png
-            symbol = EXCEPTION_KEYS.get(key, "ERROR")
+        key = event.name
 
         if self.ready_to_change_start_key:
-            self.rebind_start_button.setText(symbol)
-            self.start_button.bind = symbol
-            self.start_button.setText(f"Start ({self.start_button.bind})")
+            self.rebind_start_button.setText(key.upper())
+            self.start_button.bind = key
+            self.start_button.setText(f"Start ({self.start_button.bind.upper()})")
             self.ready_to_change_start_key = False
 
         if self.ready_to_change_key:
-            self.button_to_click.setText(symbol)
-            self.button_to_click.last = symbol.lower()
+            self.button_to_click.setText(key.upper())
+            self.button_to_click.last = key
             self.ready_to_change_key = False
 
     def on_mouse_key_pressed(self, event) -> None:
@@ -255,18 +252,25 @@ class MainWindow(QMainWindow):
             self.button_to_click.last = symbol
             self.ready_to_change_key = False
 
-    def event(self, event) -> None:
-        if event.type() == QEvent.KeyPress:
-            if QKeySequence(event.key()).toString() == self.start_button.bind:
-                if self.started:
-                    self.stop_pressing()
-                else:
-                    self.start_pressing()
+    def on_keyboard_press(self, event) -> None:
+        key = event.name
+        if key == self.start_button.bind:
+            if self.started:
+                self.stop_pressing()
             else:
-                self.on_key_pressed(event)
-        elif event.type() == QEvent.MouseButtonPress:
-            self.on_mouse_key_pressed(event)
-        return QMainWindow.event(self, event)
+                self.start_pressing()
+        else:
+            self.on_key_pressed(event)
+
+    # Using PyQt5 event handler only for detecting mouse presses
+    def event(self, event) -> bool:
+        if isinstance(event, QEvent):
+            if event.type() == QEvent.MouseButtonPress:
+                self.on_mouse_key_pressed(event)
+            return QMainWindow.event(self, event)
+
+    def detect_key_presses(self):
+        keyboard.on_press(self.on_keyboard_press)
 
     def closeEvent(self, a0) -> None:
         cfg = self.load_config()
