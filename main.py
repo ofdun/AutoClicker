@@ -1,7 +1,7 @@
 import sys
 import os
 from PyQt5.QtCore import QSize, QEvent, Qt
-from PyQt5.QtGui import QKeySequence, QIcon
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
